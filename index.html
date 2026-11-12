@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Valoración de estructuras · SCORE CARDER</title>
+<meta name="description" content="Valoración técnica visual de edificaciones y concepto FO-18-04, equipo SCORE de la CARDER.">
+<meta name="theme-color" content="#0b4f6c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="img/icono-192.png">
+<link rel="apple-touch-icon" href="img/icono-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="app"><div class="in">
+  <img src="img/logo.jpg" alt="Logo CARDER">
+  <h1>Valoración de estructuras<small id="h-sub">SCORE · CARDER</small></h1>
+  <span class="sp"></span>
+  <span class="estado-red" id="red" title="Estado de la conexión"></span>
+  <span id="h-acciones"></span>
+</div><div class="franja"></div></header>
+
+<main>
+<div class="aviso local" id="aviso-local" hidden>Modo local: la app no tiene servidor configurado. Todo queda en este navegador; use «Descargar Word» o «Exportar borrador» para conservar su trabajo.</div>
+
+<!-- INGRESO -->
+<section class="vista" id="v-ingreso">
+ <div class="card ingreso">
+  <h2>Ingreso</h2>
+  <p class="hint">Use su correo institucional y el PIN que le entregó el administrador de la app.</p>
+  <form id="f-ingreso" class="g" style="grid-template-columns:1fr">
+   <label>Correo<input id="in-correo" type="email" autocomplete="username" required></label>
+   <label>PIN<input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password" minlength="6" maxlength="12" required></label>
+   <button class="btn" type="submit" id="b-entrar">Entrar</button>
+  </form>
+  <p class="error" id="in-error" role="alert"></p>
+ </div>
+</section>
+
+<!-- INICIO -->
+<section class="vista" id="v-inicio">
+ <div class="barra-inicio">
+  <button class="btn" type="button" id="b-nueva">Nueva valoración</button>
+  <button class="btn sec" type="button" id="b-sync">Sincronizar</button>
+  <label class="btn sec" for="f-imp" style="display:inline-block">Importar borrador</label>
+  <input type="file" id="f-imp" accept=".json,application/json" hidden>
+  <span class="sync-info" id="sync-info"></span>
+ </div>
+ <div class="card" id="c-asignadas">
+  <h2>Solicitudes asignadas</h2>
+  <p class="hint">Las asignó la coordinación en la hoja. Al abrir una se llenan los datos de la solicitud.</p>
+  <div id="l-asignadas" class="lista"></div>
+ </div>
+ <div class="card">
+  <h2>Mis valoraciones en este dispositivo</h2>
+  <p class="hint">Borrador: solo en este dispositivo · Por enviar: se envía al haber señal · Enviada: ya está en la hoja y en Drive.</p>
+  <div id="l-mias" class="lista"></div>
+ </div>
+</section>
+
+<!-- EDITOR -->
+<section class="vista" id="v-editor">
+<div class="editor-cab">
+ <button class="btn sec sm" type="button" id="b-volver">← Mis valoraciones</button>
+ <span id="ed-titulo" class="ed-titulo"></span>
+ <span id="ed-estado" class="pill"></span>
+</div>
+<nav class="pasos" id="nav"></nav>
+
+<!-- 1 SOLICITUD -->
+<section class="paso" id="p-sol" data-t="1. Solicitud">
+ <div class="card"><h2>Encabezado del concepto</h2>
+  <div class="g">
+   <label>N.º de concepto técnico<input id="ct_num" placeholder="Lo da SAIA o la SCORE"></label>
+   <label>Fecha del concepto<input id="ct_fecha" type="date"></label>
+   <label class="w2">Para<input id="para"></label>
+   <label class="full">De<input id="de"></label>
+   <label class="full">Asunto <textarea id="asunto" style="min-height:60px" placeholder="Se propone con el municipio y el nombre de la edificación"></textarea></label>
+  </div>
+  <div style="margin-top:8px"><button class="btn sm sec" type="button" id="b-asunto">Proponer asunto</button></div>
+ </div>
+ <div class="card"><h2>Documento de origen y asignación</h2>
+  <p class="hint">La asignación alimenta el registro del PTI (actividad 2).</p>
+  <div class="g">
+   <label>Tipo de solicitud<select id="doc_tipo"></select></label>
+   <label>Número<input id="doc_num" placeholder="20261029-25929-E"></label>
+   <label>Fecha del documento<input id="doc_fecha" type="date"></label>
+   <label>Expediente<input id="expediente"></label>
+   <label>Asignado por<input id="asig_por" placeholder="Subdirector SCORE"></label>
+   <label>Medio de asignación<select id="asig_medio"><option>Correo</option><option>SAIA</option><option>Acta de reunión</option><option>Verbal</option></select></label>
+   <label>Fecha de asignación<input id="asig_fecha" type="date"></label>
+   <label class="full">Lo que pide la solicitud (cita textual o resumen)<textarea id="sol_texto"></textarea></label>
+  </div>
+ </div>
+ <div class="card"><h2>Peticionario</h2>
+  <p class="hint">Datos personales: se guardan en la hoja institucional y no aparecen en ninguna lista.</p>
+  <div class="g">
+   <label>Tipo de persona<select id="pet_tipo"><option>Persona natural</option><option>Persona jurídica</option><option>Entidad pública</option><option>Comunidad</option></select></label>
+   <label class="w2">Nombre o razón social<input id="pet_nombre" autocomplete="off"></label>
+   <label>Identificación<input id="pet_id" autocomplete="off"></label>
+   <label class="w2">Dirección de notificación<input id="pet_dir" autocomplete="off"></label>
+   <label>Teléfono<input id="pet_tel" autocomplete="off" inputmode="tel"></label>
+   <label>Correo<input id="pet_correo" autocomplete="off" inputmode="email"></label>
+   <label>Calidad en que actúa<input id="pet_calidad" placeholder="Propietario, administrador…"></label>
+  </div>
+ </div>
+</section>
+
+<!-- 2 SITIO Y VISITA -->
+<section class="paso" id="p-sitio" data-t="2. Sitio y visita">
+ <div class="card"><h2>Ubicación con GPS</h2>
+  <p class="hint">Tome el punto frente a la edificación. La app convierte a Magna Sirgas Origen Nacional y avisa si ya hay una valoración a menos de <span id="radio-m"></span> m.</p>
+  <div class="gps-fila">
+   <button class="btn" type="button" id="b-gps">Tomar GPS</button>
+   <span id="gps-info" class="gps-info"></span>
+  </div>
+  <div class="alerta" id="cerca" hidden></div>
+ </div>
+ <div class="card"><h2>Descripción del punto</h2>
+  <div class="g">
+   <label>Municipio<select id="mpio"></select></label>
+   <label>Barrio o vereda<input id="barrio"></label>
+   <label>Zona<select id="zona"><option>Urbano</option><option>Rural</option></select></label>
+   <label class="w2">Nombre de la edificación<input id="edif"></label>
+   <label class="w2">Dirección<input id="dir"></label>
+   <label>Norte (Magna Sirgas Origen Nacional)<input id="norte" inputmode="decimal"></label>
+   <label>Este<input id="este" inputmode="decimal"></label>
+   <label>Altitud (msnm)<input id="alt" inputmode="decimal"></label>
+   <label>Fuente de las coordenadas<input id="coord_fuente" placeholder="GPS del celular, Avenza Maps…"></label>
+   <label>Cuenca hidrográfica<input id="cuenca"></label>
+   <label>POMCA<input id="pomca"></label>
+   <label class="full">Acceso al punto<textarea id="acceso" style="min-height:60px"></textarea></label>
+  </div>
+ </div>
+ <div class="card"><h2>Visita técnica</h2>
+  <div class="g">
+   <label>Fecha de la visita<input id="v_fecha" type="date"></label>
+   <label>Hora<input id="v_hora" type="time"></label>
+   <label>N.º de acta<input id="v_acta"></label>
+   <label class="w2">Persona que atendió<input id="v_atendio" autocomplete="off"></label>
+   <label>Calidad<input id="v_calidad"></label>
+   <label>Tipo de inspección<select id="insp_tipo"><option>Completa</option><option>Exterior solamente</option></select></label>
+   <label>Ocupación<select id="ocup"><option>Ocupada</option><option>Desocupada</option></select></label>
+  </div>
+ </div>
+</section>
+
+<!-- 3 EDIFICACION -->
+<section class="paso" id="p-edif" data-t="3. Edificación">
+ <div class="card"><h2>Identificación de la edificación</h2>
+  <p class="hint">Mismos campos del formulario regional de evaluación rápida de daños en edificaciones (CDGRD Risaralda).</p>
+  <div class="g">
+   <label>Uso<select id="uso"><option>Residencial</option><option>Comercial</option><option>Mixto (residencial y comercial)</option><option>Institucional</option><option>Educativo</option><option>Salud</option><option>Industrial</option><option>Infraestructura de servicios públicos</option><option>Otro</option></select></label>
+   <label>Tipo<select id="tenencia"><option>Privada</option><option>Pública</option></select></label>
+   <label>Pisos sobre el suelo<input id="pisos" type="number" min="0"></label>
+   <label>Sótanos<input id="sotanos" type="number" min="0"></label>
+   <label>Frente (m)<input id="frente" inputmode="decimal"></label>
+   <label>Fondo (m)<input id="fondo" inputmode="decimal"></label>
+   <label>Año o época de construcción<input id="anio" placeholder="p. ej. década de 1980"></label>
+   <label>Sistema estructural<select id="sis"><option>Pórticos de concreto reforzado</option><option>Muros de concreto reforzado</option><option>Mampostería confinada</option><option>Mampostería reforzada</option><option>Mampostería no reforzada</option><option>Bahareque o tierra</option><option>Madera</option><option>Estructura metálica</option><option>Prefabricado</option><option>Sistema combinado o mixto</option><option>No es claro</option></select></label>
+   <label>Sistema de entrepiso<select id="entre"><option>Losa aligerada</option><option>Losa maciza</option><option>Placa en lámina colaborante (steel deck)</option><option>Entrepiso de madera</option><option>No aplica (un piso)</option><option>No es claro</option></select></label>
+   <label>Soporte de la cubierta<select id="sopcub"><option>Vigas o correas metálicas</option><option>Cerchas metálicas</option><option>Estructura de madera</option><option>Losa de concreto</option><option>No es claro</option></select></label>
+   <label>Tipo de cubierta<select id="cub"><option>Teja de fibrocemento</option><option>Teja metálica (zinc)</option><option>Teja de barro</option><option>Teja termoacústica</option><option>Losa de concreto</option><option>Otro</option></select></label>
+   <label>Morfología del sitio<select id="morf"><option>Terreno plano</option><option>Ladera</option><option>Corona de talud</option><option>Pie de talud</option><option>Margen de cauce</option><option>Relleno</option></select></label>
+   <label>Distancia a cuerpo de agua (m)<input id="d_agua" inputmode="decimal"></label>
+   <label class="full">Descripción general de la edificación y del predio<textarea id="desc_edif"></textarea></label>
+  </div>
+ </div>
+ <div class="card"><h2>Evaluación previa (formulario regional u otra)</h2>
+  <div class="g">
+   <label>¿Existe evaluación previa?<select id="prev_ex"><option>No</option><option>Sí</option></select></label>
+   <label>Fecha<input id="prev_fecha" type="date"></label>
+   <label class="w2">Evaluador y entidad<input id="prev_quien"></label>
+   <label>Clasificación previa<select id="prev_clas"><option value="">—</option><option value="VERDE">Verde (habitable)</option><option value="AMARILLO">Amarillo (uso restringido)</option><option value="ROJO">Rojo (no habitable)</option></select></label>
+   <label class="full">Lo que anotó el evaluador<textarea id="prev_obs" style="min-height:60px"></textarea></label>
+  </div>
+ </div>
+</section>
+
+<!-- 4 DAÑOS -->
+<section class="paso" id="p-danos" data-t="4. Daños">
+ <div class="card"><h2>Peligro global y condiciones geotécnicas</h2>
+  <div class="chips" id="peligros"></div>
+ </div>
+ <div class="card"><h2>Daño en elementos estructurales</h2>
+  <p class="hint">N/L: ninguno o leve · M: moderado · S: severo. Guía de Patologías FOPAE-AIS (2011).</p>
+  <div class="tw"><table class="dano" id="t-est"></table></div>
+ </div>
+ <div class="card"><h2>Daño en elementos no estructurales</h2>
+  <div class="tw"><table class="dano" id="t-noest"></table></div>
+ </div>
+ <div class="card"><h2>Aspectos encontrados</h2>
+  <p class="hint">Lo que se observó, en el orden del recorrido. Diga cuándo algo es apreciación visual y no medición.</p>
+  <textarea id="aspectos" style="min-height:160px"></textarea>
+ </div>
+ <div class="card"><h2>Registro fotográfico</h2>
+  <p class="hint">Las fotos se reducen a <span id="foto-px"></span> px. Si tomó el GPS hace menos de 5 minutos, la foto queda con esas coordenadas.</p>
+  <div class="gps-fila">
+   <label class="btn" for="f-camara" style="display:inline-block">Tomar foto</label>
+   <input type="file" id="f-camara" accept="image/*" capture="environment" hidden>
+   <label class="btn sec" for="f-fotos" style="display:inline-block">Elegir de la galería</label>
+   <input type="file" id="f-fotos" accept="image/*" multiple hidden>
+  </div>
+  <div class="fotos" id="fotos" style="margin-top:12px"></div>
+ </div>
+</section>
+
+<!-- 5 CLASIFICACION -->
+<section class="paso" id="p-clas" data-t="5. Clasificación">
+ <div class="card"><h2>Clasificación de habitabilidad y nivel de daño</h2>
+  <div class="sug" id="sug"></div>
+  <div class="sem" id="sem"></div>
+  <div class="g" style="margin-top:12px">
+   <label>Nivel de daño<select id="nivel"><option value="NINGUNO_MENOR">Ninguno o menor</option><option value="MODERADO">Moderado</option><option value="SEVERO">Severo</option></select></label>
+  </div>
+ </div>
+</section>
+
+<!-- 6 ANALISIS -->
+<section class="paso" id="p-anal" data-t="6. Análisis y conclusiones">
+ <div class="card"><h2>Análisis de las condiciones de amenaza, vulnerabilidad y riesgo</h2>
+  <p class="hint">Frases de apoyo (se agregan al final del texto):</p>
+  <div class="chips" id="frases" style="margin-bottom:10px"></div>
+  <textarea id="analisis" style="min-height:180px"></textarea>
+ </div>
+ <div class="card"><h2>Respuesta a las solicitudes del peticionario</h2>
+  <p class="hint">Responda punto por punto. Lo que no es de la CARDER se dice y se traslada a quien corresponde.</p>
+  <textarea id="respuesta" style="min-height:120px"></textarea>
+ </div>
+ <div class="card"><h2>Conclusiones</h2>
+  <p class="hint">Una por línea. «Proponer conclusiones» las arma con los datos de los pasos anteriores; revíselas.</p>
+  <button class="btn sm sec" type="button" id="b-concl">Proponer conclusiones</button>
+  <textarea id="conclusiones" style="min-height:150px;margin-top:8px"></textarea>
+ </div>
+</section>
+
+<!-- 7 RECOMENDACIONES -->
+<section class="paso" id="p-rec" data-t="7. Recomendaciones">
+ <div class="card"><h2>Recomendaciones y traslados</h2>
+  <p class="hint">Marque las que apliquen; el texto se ajusta con los datos del caso.</p>
+  <div id="recs"></div>
+  <label style="margin-top:12px">Recomendaciones adicionales (una por línea)<textarea id="rec_extra"></textarea></label>
+ </div>
+ <div class="card"><h2>Alcance del concepto</h2>
+  <p class="hint">Este texto va siempre en el concepto. Protege a quien firma: la CARDER valora la condición de riesgo, no certifica la edificación.</p>
+  <div class="fijo" id="alcance-fijo"></div>
+ </div>
+</section>
+
+<!-- 8 FIRMAS Y ENVÍO -->
+<section class="paso" id="p-firmas" data-t="8. Firmas y envío">
+ <div class="card"><h2>Profesionales que firman</h2>
+  <div id="firmas"></div>
+  <button class="btn sm sec" type="button" id="b-firma">Agregar profesional</button>
+ </div>
+ <div class="card"><h2>Anexos</h2>
+  <div class="chips" id="anexos"></div>
+ </div>
+ <div class="card"><h2>Enviar a la hoja institucional</h2>
+  <p class="hint" id="envio-hint">Al marcarla «por enviar», la app la manda a la hoja y las fotos a Drive en cuanto haya señal. Podrá seguir descargando el Word.</p>
+  <div class="gps-fila">
+   <button class="btn" type="button" id="b-enviar">Marcar por enviar</button>
+   <span id="faltan" class="hint"></span>
+  </div>
+ </div>
+ <div class="card"><h2>Registro del PTI</h2>
+  <p class="hint">Copia la fila para la hoja «Registro_tareas» del libro de soporte del PTI (columnas A a F).</p>
+  <button class="btn sm sec" type="button" id="b-pti">Copiar fila para el registro del PTI</button>
+  <textarea id="pti_fila" style="min-height:44px;margin-top:8px" readonly hidden></textarea>
+ </div>
+</section>
+
+<!-- VISTA PREVIA -->
+<section class="paso" id="p-prev" data-t="Vista previa">
+ <div class="aviso">Los campos en rojo están vacíos. «Descargar Word» genera un .doc para terminar de editar y radicar; «Imprimir o PDF» usa el diálogo de impresión del navegador.
+  <div class="gps-fila" style="margin-top:8px"><button class="btn sm" type="button" id="b-copiar2">Copiar texto</button><button class="btn sm" type="button" id="b-imp2">Imprimir o PDF</button></div></div>
+ <div id="hoja"></div>
+</section>
+
+<div class="fab">
+ <button class="btn sec" type="button" id="b-ant">← Anterior</button>
+ <button class="btn sec" type="button" id="b-sig">Siguiente →</button>
+ <button class="btn sec" type="button" id="b-copiar">Copiar texto</button>
+ <button class="btn sec" type="button" id="b-imp">Imprimir o PDF</button>
+ <button class="btn" type="button" id="b-word">Descargar Word</button>
+</div>
+</section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="ficha-estructuras.js"></script>
+<script src="concepto.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
