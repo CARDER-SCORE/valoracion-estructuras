@@ -1,0 +1,15 @@
+{
+  "name": "Valoración de estructuras · SCORE CARDER",
+  "short_name": "Estructuras",
+  "description": "Valoración técnica visual de edificaciones y concepto FO-18-04.",
+  "lang": "es-CO",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f9",
+  "theme_color": "#0b4f6c",
+  "icons": [
+    { "src": "img/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icono-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
