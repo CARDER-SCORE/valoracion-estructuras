@@ -23,7 +23,8 @@ function iniciar(port, { local = false } = {}) {
     const f = path.join(ROOT, p);
     if (!f.startsWith(ROOT) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
     let body = fs.readFileSync(f);
-    if (p === "/config.js" && !local) body = Buffer.from(body.toString().replace('APPS_SCRIPT_URL: ""', `APPS_SCRIPT_URL: "http://localhost:${port}/exec"`));
+    // Las pruebas nunca llaman al servidor real: se reemplaza la URL configurada.
+    if (p === "/config.js") body = Buffer.from(body.toString().replace(/APPS_SCRIPT_URL: "[^"]*"/, `APPS_SCRIPT_URL: "${local ? "" : `http://localhost:${port}/exec`}"`));
     res.writeHead(200, { "content-type": tipos[path.extname(f)] || "application/octet-stream", "cache-control": "no-store" }); res.end(body);
   });
   return new Promise(ok => srv.listen(port, () => ok({ srv, g })));
