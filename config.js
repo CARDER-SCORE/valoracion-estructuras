@@ -3,7 +3,7 @@
 window.CONFIG = {
   // URL de la aplicación web de Apps Script (termina en /exec).
   // Vacía = "modo local": sin ingreso ni servidor; todo queda en este navegador.
-  APPS_SCRIPT_URL: "",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwFzdMLmnXXbyJ0XCHxmfTHAvwolCWPjIc9bWgPSyVioSSOnpPpkViSjxXJiAJLGfKK/exec",
 
   // Nombre que se muestra arriba. Útil para tener un gemelo de pruebas ("PRUEBAS").
   ESPACIO: "",
