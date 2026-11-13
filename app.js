@@ -112,7 +112,9 @@ function sesionVencida() {
 
 // ---------- Vistas ----------
 let vistaActual = "";
+let recargaPendiente = false; // hay versión nueva de la app esperando a que salga del editor
 function mostrar(v) {
+  if (recargaPendiente && v !== "editor") { location.reload(); return; }
   vistaActual = v;
   document.querySelectorAll(".vista").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
   $("h-acciones").innerHTML = "";
@@ -992,7 +994,24 @@ async function arrancar() {
   await limpiar();
   if (!LOCAL && !sesion) mostrar("ingreso"); else mostrar("inicio");
   if (!LOCAL) { sincronizar(); setInterval(sincronizar, C.SYNC_MIN * 60000); }
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol !== "file:") actualizaciones();
+}
+// Busca versiones nuevas al abrir y al volver a la app; al llegar una, recarga sola
+// (si está diligenciando una valoración, espera a que salga del editor).
+function actualizaciones() {
+  const habia = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(reg => {
+    const revisar = () => reg.update().catch(() => {});
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") revisar(); });
+    setInterval(revisar, 30 * 60000);
+  }).catch(() => {});
+  let hecho = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!habia || hecho) return; // primera instalación: no hace falta recargar
+    hecho = true;
+    if (vistaActual === "editor") { recargaPendiente = true; toast("Hay una versión nueva de la app. Se aplicará al salir de esta valoración.", 5000); }
+    else location.reload();
+  });
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && cur) { leer(); guardar(); } });
 arrancar();
