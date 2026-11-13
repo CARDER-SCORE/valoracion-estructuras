@@ -5,7 +5,8 @@ function iniciar(port, { local = false } = {}) {
   const g = crear(ROOT + "/apps-script/Code.gs");
   g.ctx.configurar();
   const U = g.ss.getSheetByName("Usuarios");
-  U.appendRow(["eva@carder.gov.co", "Eva Prueba", "evaluador", "SI", "Ingeniera Civil", "Profesional Especializado", "RIS-12345", g.hash("sal1123456"), "sal1", "", ""]);
+  U.appendRow(["eva@carder.gov.co", "Eva Prueba", "proyectista", "SI", "Ingeniera Civil", "Profesional Universitario", "RIS-12345", g.hash("sal1123456"), "sal1", "", ""]);
+  U.appendRow(["rev@carder.gov.co", "Revisor Prueba", "revisor", "SI", "Ingeniero Civil", "Profesional Especializado", "RIS-999", g.hash("sal2222222"), "sal2", "", ""]);
   const S = g.ss.getSheetByName("Solicitudes");
   S.appendRow(["S1", "SAIA", "20261104-111-E", new Date("2026-11-04T12:00:00Z"), "Subdirector SCORE", "Correo", new Date("2026-11-06T12:00:00Z"), "eva@carder.gov.co", "Pereira", "Centro", "Cra 7 # 19-20", "Edificio Prueba", "Solicito visita por grietas", "Persona natural", "Juan Pérez", "1088", "Calle 1", "300", "j@x.co", "Propietario", "NA", "Asignada", ""]);
   const tipos = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".png": "image/png" };

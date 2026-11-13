@@ -30,11 +30,13 @@ Al terminar se tiene:
 
 | correo | nombre | rol | activo | profesion | cargo | matricula |
 |---|---|---|---|---|---|---|
-| correo institucional | Nombre completo | `evaluador`, `coordinador` o `admin` | `SI` | Ingeniero Civil | Profesional Especializado | número |
+| correo institucional | Nombre completo | `proyectista`, `revisor`, `coordinador` o `admin` | `SI` | Ingeniero Civil | Profesional Especializado | número |
 
-   - `evaluador`: ve sus solicitudes y edita solo sus valoraciones.
-   - `coordinador` o `admin`: además puede abrir solicitudes y valoraciones de otros.
-   - El nombre, la profesión, el cargo y la matrícula llenan la firma del concepto.
+   - `proyectista` (o `evaluador`): visita, diligencia y envía a revisión. Ve sus solicitudes y edita solo sus valoraciones.
+   - `revisor`: además revisa las valoraciones de otros, las corrige, y las **aprueba y suscribe** o las **devuelve con observaciones**. El concepto aprobado lleva su firma.
+   - `coordinador`: puede abrir solicitudes y valoraciones de otros, pero no aprueba.
+   - `admin`: todo lo anterior.
+   - El nombre, la profesión, el cargo y la matrícula llenan la firma del concepto (la del revisor, como suscriptor; la del proyectista, en la línea «Proyectó»).
 2. Seleccione la fila del usuario y abra **Valoración estructuras → 2. Asignar PIN al usuario de la fila seleccionada**.
 3. Anote el PIN de 6 dígitos que aparece y entrégueselo a la persona **en privado**. El PIN no queda guardado en claro; si se pierde, se asigna uno nuevo.
 
@@ -82,7 +84,9 @@ Cuando cambie `Code.gs` más adelante: **Implementar → Gestionar implementacio
 - `estado` = `Asignada`;
 - lo demás que tenga: tipo y número de radicado, fechas, municipio, dirección, edificación, texto de la solicitud y datos del peticionario.
 
-La app se la muestra al evaluador en su próxima sincronización. Cuando él envía la valoración, la fila pasa a `Atendida` y queda el consecutivo de la valoración (`VE-2026-0001`…). El conteo de atendidas sobre asignadas es el indicador del PTI.
+La app se la muestra al proyectista en su próxima sincronización. Cuando envía la valoración, la fila pasa a `Atendida` y queda el consecutivo de la valoración (`VE-2026-0001`…).
+
+**Revisión:** en la pestaña **Conceptos**, la columna `estado` dice `En revisión`, `Devuelta` o `Aprobada`; `obs_revision` guarda las observaciones y `suscribe_nombre` quién suscribe. El revisor ve las pendientes en «Por revisar» (pestaña Visitas).
 
 **Dónde queda cada cosa:**
 - **Conceptos**: una fila por valoración, con todos los campos.
@@ -99,6 +103,18 @@ Para probar sin tocar los datos reales:
 2. Publique una copia del repositorio con `ESPACIO: "PRUEBAS"` y la URL de esa hoja en `config.js`.
 
 `ESPACIO` aparece en el encabezado y separa lo guardado en el navegador.
+
+## Actualizar el servidor (cuando cambia `Code.gs`)
+
+1. Abra la hoja → **Extensiones → Apps Script**.
+2. Borre todo el contenido de `Code.gs` y pegue el nuevo. Guarde (Ctrl + S).
+3. **Implementar → Gestionar implementaciones →** lápiz → **Versión: Nueva versión → Implementar**. Así la URL no cambia.
+
+La versión 2 agrega columnas a «Conceptos» (las crea sola) y usa los roles nuevos de «Usuarios».
+
+## Capas del mapa
+
+Se configuran en `config.js` (`MAPA.BASES` y `MAPA.CAPAS`). Las capas `arcgis` son servicios MapServer de ArcGIS: se piden con `/export` y se consultan con `/identify`. Si el servidor de la entidad no responde o no permite consultas desde otra página, la app lo avisa y sigue funcionando. Las imágenes de Esri World Imagery se usan con su atribución; para un uso institucional sostenido conviene revisar sus condiciones o preferir Sentinel-2 (EOX) o las ortoimágenes del IGAC.
 
 ## Publicar cambios en la app
 
