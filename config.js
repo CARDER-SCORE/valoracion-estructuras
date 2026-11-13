@@ -9,7 +9,7 @@ window.CONFIG = {
   ESPACIO: "",
 
   // Versión visible (súbala junto con CACHE en sw.js en cada publicación).
-  VERSION: "2.0.0",
+  VERSION: "2.0.1",
 
   // Evento que motiva las visitas. Se usa en el asunto y en algunas frases tipo.
   // Déjelo vacío cuando las valoraciones no estén ligadas a un evento.

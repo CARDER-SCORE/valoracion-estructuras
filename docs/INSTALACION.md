@@ -120,6 +120,6 @@ Se configuran en `config.js` (`MAPA.BASES` y `MAPA.CAPAS`). Las capas `arcgis` s
 
 En cada cambio que se publique:
 - suba `VERSION` en `config.js`;
-- suba `CACHE` en `sw.js` (por ejemplo `valoracion-estructuras-v2`).
+- suba `CACHE` en `sw.js` (por ejemplo `valoracion-estructuras-v4`).
 
-Así los celulares toman la versión nueva al abrir con señal.
+Así los celulares toman la versión nueva al abrir con señal. Desde la 2.0.1 la app busca versiones nuevas al abrir y al volver a ella, y se recarga sola (si hay una valoración abierta, espera a que se salga del editor).
