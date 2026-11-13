@@ -43,13 +43,13 @@ const { iniciar } = require("./servidor-local");
   assert.equal(await p.textContent("#ed-estado"), "Por enviar", "queda por enviar si el servidor no responde");
   S.srv.caido = false;
   await p.click("#b-enviar");
-  await p.waitForFunction(() => document.getElementById("ed-estado").textContent === "Enviada", null, { timeout: 10000 });
+  await p.waitForFunction(() => document.getElementById("ed-estado").textContent === "En revisión", null, { timeout: 10000 });
   // editar una enviada -> vuelve a por enviar y se actualiza
   await p.click("#nav button[data-i='5']"); await p.fill("#analisis", "Texto corregido");
   await p.waitForFunction(() => document.getElementById("ed-estado").textContent === "Por enviar");
   await p.click("#nav button[data-i='7']"); await p.click("#b-enviar");
-  await p.waitForFunction(() => document.getElementById("ed-estado").textContent === "Enviada", null, { timeout: 10000 });
-  const c = S.g.tabla("Conceptos"); assert.equal(c.length, 1); assert.equal(c[0].analisis, "Texto corregido"); assert.equal(c[0].estado, "Actualizada");
+  await p.waitForFunction(() => document.getElementById("ed-estado").textContent === "En revisión", null, { timeout: 10000 });
+  const c = S.g.tabla("Conceptos"); assert.equal(c.length, 1); assert.equal(c[0].analisis, "Texto corregido"); assert.equal(c[0].estado, "En revisión");
   console.log("titulo:", await p.textContent("#ed-titulo"));
   // 3) recarga sin señal (service worker)
   await p.click("#b-volver"); await p.waitForSelector("#v-inicio.on");

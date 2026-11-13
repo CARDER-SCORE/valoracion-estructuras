@@ -9,12 +9,20 @@
  *   "ingresar" exige un token de sesión válido de un usuario activo.
  * - Los PIN y los tokens se guardan con hash (SHA-256 con sal); nunca en claro.
  * - Las listas devuelven solo CAMPOS_LISTA; los datos personales del peticionario
- *   salen únicamente al abrir una solicitud asignada a quien la pide.
+ *   salen únicamente al abrir una solicitud asignada a quien la pide, o una
+ *   valoración propia o que se está revisando.
+ *
+ * Roles (columna «rol» de Usuarios):
+ * - proyectista (o evaluador): visita, diligencia y envía a revisión.
+ * - revisor: además revisa, devuelve o aprueba; quien aprueba suscribe el concepto.
+ * - coordinador: ve y abre las valoraciones de todos, sin aprobar.
+ * - admin: todo lo anterior.
  */
 
 // Debe coincidir con FICHA.CAMPOS_LISTA de ficha-estructuras.js (más evaluador).
-var CAMPOS_LISTA = ['id', 'consecutivo', 'ct_num', 'estado', 'mpio', 'barrio', 'edif', 'dir', 'v_fecha', 'hab', 'nivel',
-  'lat', 'lon', 'evaluador_nombre', 'doc_tipo', 'doc_num', 'actualizado'];
+var CAMPOS_LISTA = ['id', 'consecutivo', 'ct_num', 'estado', 'mpio', 'barrio', 'zona', 'edif', 'dir', 'v_fecha', 'hab', 'nivel',
+  'lat', 'lon', 'evaluador', 'evaluador_nombre', 'doc_tipo', 'doc_num', 'actualizado', 'uso', 'sis', 'pisos', 'n_fotos',
+  'suscribe_correo', 'suscribe_nombre', 'revisor_nombre', 'revisado', 'obs_revision', 'doc_url'];
 var CAMPOS_SOLICITUD_LISTA = ['id', 'doc_tipo', 'doc_num', 'asig_fecha', 'mpio', 'barrio', 'dir', 'edif', 'estado'];
 
 var HOJAS = {
@@ -23,7 +31,7 @@ var HOJAS = {
   Solicitudes: ['id', 'doc_tipo', 'doc_num', 'doc_fecha', 'asig_por', 'asig_medio', 'asig_fecha', 'asignado_a', 'mpio', 'barrio', 'dir', 'edif',
     'sol_texto', 'pet_tipo', 'pet_nombre', 'pet_id', 'pet_dir', 'pet_tel', 'pet_correo', 'pet_calidad', 'expediente', 'estado', 'concepto'],
   Conceptos: ['id', 'consecutivo', 'estado', 'evaluador', 'evaluador_nombre', 'recibido', 'actualizado', 'solicitud_id', 'carpeta_url', 'doc_url',
-    'carpeta_id', 'doc_id'],
+    'carpeta_id', 'doc_id', 'suscribe_correo', 'suscribe_nombre', 'revisor', 'revisor_nombre', 'revisado', 'obs_revision'],
   Fotos: ['concepto_id', 'consecutivo', 'foto_id', 'n', 'descripcion', 'norte', 'este', 'lat', 'lon', 'archivo_id', 'url', 'subida', 'estado'],
   Bitacora: ['fecha', 'correo', 'accion', 'detalle']
 };
@@ -31,6 +39,8 @@ var DIAS_SESION = 30;
 var MAX_FALLOS = 5, MINUTOS_BLOQUEO = 15;
 var MAX_FOTO_BYTES = 5 * 1024 * 1024;
 var MAX_COLUMNAS = 300;
+var COLS_REVISION = ['estado', 'suscribe_correo', 'suscribe_nombre', 'revisor', 'revisor_nombre', 'revisado', 'obs_revision'];
+var ESTADOS = { REVISION: 'En revisión', DEVUELTA: 'Devuelta', APROBADA: 'Aprobada' };
 
 // ---------------- Menú de la hoja ----------------
 function onOpen() {
@@ -114,6 +124,10 @@ function doPost(e) {
       case 'guardar': return json_(guardar_(u, p));
       case 'foto': return json_(foto_(u, p));
       case 'documento': return json_(documento_(u, p));
+      case 'revisores': return json_(revisores_());
+      case 'ficha': return json_(ficha_(u, p));
+      case 'fotob64': return json_(fotob64_(u, p));
+      case 'revisar': return json_(revisar_(u, p));
       default: return json_({ ok: false, error: 'Acción desconocida' });
     }
   } catch (err) {
@@ -187,14 +201,19 @@ function guardar_(u, p) {
     var limpio = {};
     Object.keys(ficha).forEach(function (k) {
       if (!/^[a-z][a-z0-9_]{0,40}$/.test(k)) return;
-      if (['consecutivo', 'evaluador', 'evaluador_nombre', 'recibido', 'carpeta_url', 'doc_url', 'carpeta_id', 'doc_id', 'estado'].indexOf(k) >= 0) return;
+      if (['consecutivo', 'evaluador', 'evaluador_nombre', 'recibido', 'carpeta_url', 'doc_url', 'carpeta_id', 'doc_id'].indexOf(k) >= 0) return;
+      if (COLS_REVISION.indexOf(k) >= 0) return;
       limpio[k] = seguro_(ficha[k]);
     });
+    // Quien suscribe debe ser un revisor activo; si no se eligió, lo define quien apruebe.
+    var sus = String(ficha.suscribe_correo || '').trim().toLowerCase();
+    var revisor = sus ? revisorPorCorreo_(sus) : null;
+    if (sus && !revisor) return { ok: false, error: 'La persona elegida para suscribir no es revisora activa' };
+    var propia = !fila || fila.obj.evaluador === u.correo;
     var consecutivo, carpeta;
     if (fila) {
       consecutivo = fila.obj.consecutivo;
       carpeta = carpetaConcepto_(fila.obj.carpeta_id, limpio, consecutivo);
-      limpio.estado = 'Actualizada';
     } else {
       consecutivo = nuevoConsecutivo_();
       carpeta = carpetaConcepto_('', limpio, consecutivo);
@@ -202,8 +221,20 @@ function guardar_(u, p) {
       limpio.evaluador = u.correo;
       limpio.evaluador_nombre = u.nombre || u.correo;
       limpio.recibido = new Date();
-      limpio.estado = 'Recibida';
     }
+    if (propia) {
+      // Quien proyecta envía (o reenvía) a revisión. Si quien proyecta es el mismo revisor
+      // que suscribe, queda aprobada de una vez.
+      limpio.suscribe_correo = sus;
+      limpio.suscribe_nombre = revisor ? revisor.nombre : '';
+      if (revisor && revisor.correo === u.correo && esRevisor_(u)) {
+        limpio.estado = ESTADOS.APROBADA; limpio.revisor = u.correo; limpio.revisor_nombre = u.nombre || u.correo;
+        limpio.revisado = new Date(); limpio.obs_revision = '';
+      } else {
+        limpio.estado = ESTADOS.REVISION; limpio.revisor = ''; limpio.revisor_nombre = ''; limpio.revisado = '';
+      }
+    }
+    // Si quien guarda es un revisor que corrige una valoración ajena, el estado no cambia aquí: lo cambia «revisar».
     limpio.carpeta_id = carpeta.getId();
     limpio.carpeta_url = carpeta.getUrl();
     asegurarColumnas_(sh, Object.keys(limpio));
@@ -219,13 +250,14 @@ function guardar_(u, p) {
       }
     });
 
-    // La solicitud asignada queda atendida (alimenta el indicador del PTI).
+    // La solicitud asignada queda atendida.
     if (ficha.solicitud_id) {
       var ts = tabla_('Solicitudes'), s = buscar_(ts, 'id', String(ficha.solicitud_id));
       if (s) { escribirCelda_(ts, s.i, 'estado', 'Atendida'); escribirCelda_(ts, s.i, 'concepto', consecutivo); }
     }
     bitacora_(u.correo, fila ? 'actualizar' : 'crear', consecutivo);
-    return { ok: true, consecutivo: consecutivo, carpeta: carpeta.getUrl() };
+    var final = buscar_(tabla_('Conceptos'), 'id', id).obj;
+    return { ok: true, consecutivo: consecutivo, carpeta: carpeta.getUrl(), revision: revisionDe_(final) };
   } finally {
     lock.releaseLock();
   }
@@ -268,7 +300,74 @@ function documento_(u, p) {
   return { ok: true, url: archivo.getUrl() };
 }
 
+function revisores_() {
+  var t = tabla_('Usuarios');
+  var l = t.filas.filter(function (f) { return esSi_(f.activo) && esRevisor_({ rol: String(f.rol || '').toLowerCase() }); })
+    .map(function (f) { var p = perfil_(f); return { correo: p.correo, nombre: p.nombre, profesion: p.profesion, cargo: p.cargo, matricula: p.matricula }; });
+  return { ok: true, revisores: l };
+}
+
+// Valoración completa (con datos personales): solo para quien la proyectó o para revisión/coordinación.
+function ficha_(u, p) {
+  var c = conceptoPropio_(u, p.id);
+  if (c.error) return { ok: false, error: c.error };
+  var fotos = tabla_('Fotos').filas.filter(function (f) { return f.concepto_id === String(p.id) && f.estado !== 'retirada'; })
+    .map(function (f) { return elegir_(f, ['foto_id', 'n', 'descripcion', 'norte', 'este', 'lat', 'lon']); })
+    .sort(function (a, b) { return Number(a.n) - Number(b.n); });
+  bitacora_(u.correo, 'abrir_valoracion', String(c.fila.obj.consecutivo));
+  return { ok: true, ficha: normalizar_(c.fila.obj), fotos: fotos };
+}
+
+function fotob64_(u, p) {
+  var c = conceptoPropio_(u, p.id);
+  if (c.error) return { ok: false, error: c.error };
+  var f = null;
+  tabla_('Fotos').filas.forEach(function (x) { if (x.concepto_id === String(p.id) && String(x.foto_id) === String(p.foto_id) && x.estado !== 'retirada') f = x; });
+  if (!f) return { ok: false, error: 'No existe la foto' };
+  return { ok: true, b64: Utilities.base64Encode(DriveApp.getFileById(f.archivo_id).getBlob().getBytes()) };
+}
+
+// Revisión: el revisor aprueba (y suscribe) o devuelve con observaciones.
+function revisar_(u, p) {
+  if (!esRevisor_(u)) return { ok: false, error: 'Solo un revisor puede aprobar o devolver valoraciones' };
+  var decision = String(p.decision || ''), obs = String(p.obs || '').trim();
+  if (decision !== 'aprobar' && decision !== 'devolver') return { ok: false, error: 'Decisión inválida' };
+  if (decision === 'devolver' && !obs) return { ok: false, error: 'Escriba las observaciones para devolverla' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sh = hoja_('Conceptos');
+    asegurarColumnas_(sh, COLS_REVISION);
+    var t = tabla_('Conceptos'), fila = buscar_(t, 'id', String(p.id || ''));
+    if (!fila) return { ok: false, error: 'Primero debe guardarse la valoración' };
+    var cambios = decision === 'aprobar'
+      ? { estado: ESTADOS.APROBADA, revisor: u.correo, revisor_nombre: u.nombre || u.correo, revisado: new Date(), suscribe_correo: u.correo,
+          suscribe_nombre: u.nombre || u.correo, obs_revision: obs ? seguro_(obs) : '' }
+      : { estado: ESTADOS.DEVUELTA, revisor: u.correo, revisor_nombre: u.nombre || u.correo, revisado: new Date(), obs_revision: seguro_(obs) };
+    escribirFila_(sh, fila.i, cambios);
+    bitacora_(u.correo, decision === 'aprobar' ? 'aprobar' : 'devolver', String(fila.obj.consecutivo));
+    var final = buscar_(tabla_('Conceptos'), 'id', String(p.id)).obj;
+    return { ok: true, revision: revisionDe_(final), suscribe: decision === 'aprobar' ? { n: u.nombre, p: u.profesion, c: u.cargo, m: u.matricula, correo: u.correo } : null };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ---------------- Apoyo ----------------
+function revisionDe_(o) {
+  var n = normalizar_(o);
+  return { estado: n.estado || '', revisor_nombre: n.revisor_nombre || '', revisado: n.revisado || '', obs: n.obs_revision || '',
+    suscribe_correo: n.suscribe_correo || '', suscribe_nombre: n.suscribe_nombre || '' };
+}
+function revisorPorCorreo_(correo) {
+  var t = tabla_('Usuarios'), f = buscar_(t, 'correo', correo);
+  if (!f) {
+    t.filas.forEach(function (x, i) { if (!f && String(x.correo).trim().toLowerCase() === correo) f = { i: i, obj: x }; });
+  }
+  if (!f || !esSi_(f.obj.activo)) return null;
+  var p = perfil_(f.obj);
+  return esRevisor_(p) ? p : null;
+}
 function usuarioDeToken_(token) {
   if (!token) return null;
   var h = hash_(String(token)), ts = tabla_('Sesiones'), s = buscar_(ts, 'token_hash', h);
@@ -283,7 +382,8 @@ function perfil_(o) {
   return { correo: String(o.correo).trim().toLowerCase(), nombre: String(o.nombre || ''), rol: String(o.rol || 'evaluador').toLowerCase(),
     profesion: String(o.profesion || ''), cargo: String(o.cargo || ''), matricula: String(o.matricula || '') };
 }
-function esCoordinador_(u) { return u.rol === 'coordinador' || u.rol === 'admin'; }
+function esCoordinador_(u) { return u.rol === 'coordinador' || u.rol === 'admin' || u.rol === 'revisor'; }
+function esRevisor_(u) { return u.rol === 'revisor' || u.rol === 'admin'; }
 function esSi_(v) { return v === true || /^(si|sí|true|1|x)$/i.test(String(v).trim()); }
 function conceptoPropio_(u, id) {
   var t = tabla_('Conceptos'), fila = buscar_(t, 'id', String(id || ''));

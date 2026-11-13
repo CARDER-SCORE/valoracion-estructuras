@@ -73,8 +73,9 @@ window.FICHA = (() => {
 
   // Campos que pueden verse en listas (en la app y en lo que devuelve el servidor).
   // Nada personal del peticionario va aquí.
-  const CAMPOS_LISTA = ["id", "consecutivo", "ct_num", "estado", "mpio", "barrio", "edif", "dir", "v_fecha", "hab", "nivel",
-    "lat", "lon", "evaluador_nombre", "doc_tipo", "doc_num", "actualizado"];
+  const CAMPOS_LISTA = ["id", "consecutivo", "ct_num", "estado", "mpio", "barrio", "zona", "edif", "dir", "v_fecha", "hab", "nivel",
+    "lat", "lon", "evaluador", "evaluador_nombre", "doc_tipo", "doc_num", "actualizado", "uso", "sis", "pisos", "n_fotos",
+    "suscribe_correo", "suscribe_nombre", "revisor_nombre", "revisado", "obs_revision", "doc_url"];
 
   // Datos personales (Ley 1581 de 2012): se guardan en la hoja, nunca salen en listas.
   const CAMPOS_PERSONALES = ["pet_nombre", "pet_id", "pet_dir", "pet_tel", "pet_correo", "v_atendio"];

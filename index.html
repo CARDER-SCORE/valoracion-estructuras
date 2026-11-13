@@ -6,6 +6,7 @@
 <title>Valoración de estructuras · SCORE CARDER</title>
 <meta name="description" content="Valoración técnica visual de edificaciones y concepto FO-18-04, equipo SCORE de la CARDER.">
 <meta name="theme-color" content="#0b4f6c">
+<meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="img/icono-192.png">
 <link rel="apple-touch-icon" href="img/icono-192.png">
@@ -18,7 +19,18 @@
   <span class="sp"></span>
   <span class="estado-red" id="red" title="Estado de la conexión"></span>
   <span id="h-acciones"></span>
-</div><div class="franja"></div></header>
+  <span class="h-sesion" id="h-sesion" hidden>
+   <button class="hbtn" type="button" id="b-sync" title="Enviar lo pendiente y traer lo nuevo">⟳ Sincronizar<span class="badge" id="n-pend" hidden></span></button>
+   <button class="hbtn" type="button" id="b-envios">Envíos<span class="badge" id="n-envios" hidden></span></button>
+   <button class="hbtn" type="button" id="b-perfil">Mi perfil</button>
+  </span>
+</div>
+<nav class="tabs" id="tabs" hidden><div class="in">
+  <button type="button" data-tab="inicio" class="on">Visitas</button>
+  <button type="button" data-tab="mapa">Mapa</button>
+  <button type="button" data-tab="tablero">Tablero</button>
+</div></nav>
+<div class="franja"></div></header>
 
 <main>
 <div class="aviso local" id="aviso-local" hidden>Modo local: la app no tiene servidor configurado. Todo queda en este navegador; use «Descargar Word» o «Exportar borrador» para conservar su trabajo.</div>
@@ -37,14 +49,18 @@
  </div>
 </section>
 
-<!-- INICIO -->
+<!-- VISITAS -->
 <section class="vista" id="v-inicio">
  <div class="barra-inicio">
   <button class="btn" type="button" id="b-nueva">Nueva valoración</button>
-  <button class="btn sec" type="button" id="b-sync">Sincronizar</button>
   <label class="btn sec" for="f-imp" style="display:inline-block">Importar borrador</label>
   <input type="file" id="f-imp" accept=".json,application/json" hidden>
   <span class="sync-info" id="sync-info"></span>
+ </div>
+ <div class="card" id="c-revisar" hidden>
+  <h2>Por revisar</h2>
+  <p class="hint">Valoraciones que otros proyectaron y le enviaron para revisión. Al abrir una se descarga completa, con las fotos.</p>
+  <div id="l-revisar" class="lista"></div>
  </div>
  <div class="card" id="c-asignadas">
   <h2>Solicitudes asignadas</h2>
@@ -53,8 +69,61 @@
  </div>
  <div class="card">
   <h2>Mis valoraciones en este dispositivo</h2>
-  <p class="hint">Borrador: solo en este dispositivo · Por enviar: se envía al haber señal · Enviada: ya está en la hoja y en Drive.</p>
+  <p class="hint">Borrador: solo en este dispositivo · Por enviar: se envía al haber señal · Enviada: ya está en la hoja y en Drive. El estado de la revisión se ve en «Envíos».</p>
   <div id="l-mias" class="lista"></div>
+ </div>
+</section>
+
+<!-- MAPA -->
+<section class="vista" id="v-mapa">
+ <div class="card mapa-card">
+  <div class="mapa-filtros">
+   <label>Municipio<select id="m-mpio"><option value="">Todos</option></select></label>
+   <label>Estado<select id="m-estado"><option value="">Todos</option><option>En revisión</option><option>Devuelta</option><option>Aprobada</option><option value="local">Solo en este dispositivo</option></select></label>
+   <div class="chips" id="m-hab"></div>
+   <button class="btn sm sec" type="button" id="m-yo">Mi ubicación</button>
+  </div>
+  <div id="mapa" role="region" aria-label="Mapa de valoraciones"></div>
+  <p class="hint" id="m-info" style="margin:8px 0 0"></p>
+  <p class="hint" style="margin:4px 0 0">Las capas de amenaza son cartografía regional (escala 1:100.000 o menor): orientan, pero no definen la amenaza de un predio. Toque el mapa con una capa encendida para consultar su valor en ese punto.</p>
+ </div>
+</section>
+
+<!-- TABLERO -->
+<section class="vista" id="v-tablero">
+ <div class="barra-inicio"><label style="flex-direction:row;align-items:center;gap:8px">Municipio <select id="tb-mpio" style="width:auto"><option value="">Todos</option></select></label><span class="sync-info" id="tb-info"></span></div>
+ <div class="kpis" id="tb-kpis"></div>
+ <div class="tab-grid">
+  <div class="card"><h2>Habitabilidad</h2><div id="tb-hab"></div></div>
+  <div class="card"><h2>Estado de la revisión</h2><div id="tb-est"></div></div>
+  <div class="card"><h2>Por municipio</h2><div id="tb-mun"></div></div>
+  <div class="card"><h2>Por quien proyectó</h2><div id="tb-proy"></div></div>
+  <div class="card"><h2>Sistema estructural</h2><div id="tb-sis"></div></div>
+  <div class="card"><h2>Uso de la edificación</h2><div id="tb-uso"></div></div>
+ </div>
+</section>
+
+<!-- ENVÍOS -->
+<section class="vista" id="v-envios">
+ <div class="card">
+  <h2>Envíos</h2>
+  <p class="hint">Lo que salió de este dispositivo y cómo va su revisión. En revisión: la tiene quien suscribe · Devuelta: tiene observaciones; ábrala, corríjala y vuelva a enviarla · Aprobada: suscrita, con el Word final en Drive.</p>
+  <div class="chips" id="e-filtro"></div>
+  <div id="l-envios" class="lista" style="margin-top:10px"></div>
+ </div>
+</section>
+
+<!-- MI PERFIL -->
+<section class="vista" id="v-perfil">
+ <div class="card perfil">
+  <h2>Mi perfil</h2>
+  <div id="p-datos"></div>
+  <p class="hint" style="margin-top:12px">Estos datos llenan la firma del concepto. Si algo está mal, pídale al administrador que lo corrija en la hoja «Usuarios» y vuelva a sincronizar.</p>
+ </div>
+ <div class="card">
+  <h2>Este dispositivo</h2>
+  <div id="p-disp"></div>
+  <div class="gps-fila" style="margin-top:12px"><button class="btn sec" type="button" id="b-salir">Salir</button></div>
  </div>
 </section>
 
@@ -65,6 +134,7 @@
  <span id="ed-titulo" class="ed-titulo"></span>
  <span id="ed-estado" class="pill"></span>
 </div>
+<div class="alerta" id="ed-obs" hidden></div>
 <nav class="pasos" id="nav"></nav>
 
 <!-- 1 SOLICITUD -->
@@ -80,7 +150,6 @@
   <div style="margin-top:8px"><button class="btn sm sec" type="button" id="b-asunto">Proponer asunto</button></div>
  </div>
  <div class="card"><h2>Documento de origen y asignación</h2>
-  <p class="hint">La asignación alimenta el registro del PTI (actividad 2).</p>
   <div class="g">
    <label>Tipo de solicitud<select id="doc_tipo"></select></label>
    <label>Número<input id="doc_num" placeholder="20261029-25929-E"></label>
@@ -113,6 +182,7 @@
   <div class="gps-fila">
    <button class="btn" type="button" id="b-gps">Tomar GPS</button>
    <span id="gps-info" class="gps-info"></span>
+   <button class="btn sec sm" type="button" id="b-amenaza">Consultar capas oficiales en el punto</button>
   </div>
   <div class="alerta" id="cerca" hidden></div>
  </div>
@@ -130,6 +200,7 @@
    <label>Cuenca hidrográfica<input id="cuenca"></label>
    <label>POMCA<input id="pomca"></label>
    <label class="full">Acceso al punto<textarea id="acceso" style="min-height:60px"></textarea></label>
+   <label class="full">Amenaza según cartografía oficial (referencial)<textarea id="amenaza_ref" style="min-height:60px" placeholder="Use «Consultar capas oficiales en el punto» o escriba lo que dice el POT del municipio"></textarea></label>
   </div>
  </div>
  <div class="card"><h2>Visita técnica</h2>
@@ -248,10 +319,21 @@
 </section>
 
 <!-- 8 FIRMAS Y ENVÍO -->
-<section class="paso" id="p-firmas" data-t="8. Firmas y envío">
- <div class="card"><h2>Profesionales que firman</h2>
+<section class="paso" id="p-firmas" data-t="8. Revisión y envío">
+ <div class="card"><h2>Quién proyecta</h2>
+  <p class="hint">Quien hizo la visita y diligenció la valoración. Aparece en el concepto como «Proyectó».</p>
   <div id="firmas"></div>
-  <button class="btn sm sec" type="button" id="b-firma">Agregar profesional</button>
+  <button class="btn sm sec" type="button" id="b-firma">Agregar profesional que acompañó la visita</button>
+ </div>
+ <div class="card"><h2>Quién revisa y suscribe</h2>
+  <p class="hint">El concepto lo suscribe el revisor que lo aprueba. Mientras no esté aprobado, el Word sale marcado como borrador.</p>
+  <div class="g"><label class="w2">Revisor<select id="suscribe_correo"></select></label></div>
+  <div id="suscribe-local" class="g" style="margin-top:10px" hidden>
+   <label class="w2">Nombre de quien suscribe<input id="sus_n"></label>
+   <label>Profesión<input id="sus_p"></label>
+   <label>Cargo<input id="sus_c"></label>
+   <label>Matrícula profesional<input id="sus_m"></label>
+  </div>
  </div>
  <div class="card"><h2>Anexos</h2>
   <div class="chips" id="anexos"></div>
@@ -259,14 +341,18 @@
  <div class="card"><h2>Enviar a la hoja institucional</h2>
   <p class="hint" id="envio-hint">Al marcarla «por enviar», la app la manda a la hoja y las fotos a Drive en cuanto haya señal. Podrá seguir descargando el Word.</p>
   <div class="gps-fila">
-   <button class="btn" type="button" id="b-enviar">Marcar por enviar</button>
+   <button class="btn" type="button" id="b-enviar">Enviar a revisión</button>
    <span id="faltan" class="hint"></span>
   </div>
+  <textarea id="copia_aux" style="min-height:44px;margin-top:8px" readonly hidden aria-label="Texto para copiar"></textarea>
  </div>
- <div class="card"><h2>Registro del PTI</h2>
-  <p class="hint">Copia la fila para la hoja «Registro_tareas» del libro de soporte del PTI (columnas A a F).</p>
-  <button class="btn sm sec" type="button" id="b-pti">Copiar fila para el registro del PTI</button>
-  <textarea id="pti_fila" style="min-height:44px;margin-top:8px" readonly hidden></textarea>
+ <div class="card" id="c-revision" hidden><h2>Revisión</h2>
+  <p class="hint">Usted está revisando una valoración que proyectó otra persona. Puede corregir el texto directamente. Al aprobarla, el concepto queda suscrito por usted y el Word final se guarda en Drive.</p>
+  <label>Observaciones (obligatorias para devolver; opcionales al aprobar)<textarea id="obs_revision_txt" style="min-height:80px"></textarea></label>
+  <div class="gps-fila" style="margin-top:10px">
+   <button class="btn" type="button" id="b-aprobar">Aprobar y suscribir</button>
+   <button class="btn sec" type="button" id="b-devolver">Devolver con observaciones</button>
+  </div>
  </div>
 </section>
 

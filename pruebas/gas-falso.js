@@ -34,7 +34,8 @@ function crear(codePath) {
       getId() { return this.id; }, getUrl() { return "https://drive.google.com/drive/folders/" + this.id; },
       createFolder(n) { const c = folder(n); this.children.push(c); return c; },
       getFoldersByName(n) { const l = this.children.filter(c => c.kind === "folder" && c.name === n); let i = 0; return { hasNext: () => i < l.length, next: () => l[i++] }; },
-      createFile(blob) { const fi = { id: "D" + nid++, kind: "file", name: blob.name, mime: blob.mime, size: blob.bytes.length, trashed: false, parent: this,
+      createFile(blob) { const fi = { id: "D" + nid++, kind: "file", name: blob.name, mime: blob.mime, size: blob.bytes.length, bytes: blob.bytes, trashed: false, parent: this,
+        getBlob() { const b = this.bytes; return { getBytes: () => [...Buffer.from(b)].map(x => x > 127 ? x - 256 : x) }; },
         getId() { return this.id; }, getUrl() { return "https://drive.google.com/file/d/" + this.id; }, setTrashed(t) { this.trashed = t; } };
         this.children.push(fi); files.set(fi.id, fi); return fi; } };
     files.set(f.id, f); return f;
@@ -50,6 +51,7 @@ function crear(codePath) {
       DigestAlgorithm: { SHA_256: "sha256" }, Charset: { UTF_8: "utf8" },
       computeDigest: (a, s) => toSigned(crypto.createHash("sha256").update(s, "utf8").digest()),
       base64Decode: s => toSigned(Buffer.from(s, "base64")),
+      base64Encode: arr => Buffer.from(arr.map(x => x & 255)).toString("base64"),
       newBlob: (bytes, mime, name) => ({ bytes: typeof bytes === "string" ? Buffer.from(bytes) : bytes, mime, name }),
       formatDate: (d, tz, fmt) => { const z = new Date(d.getTime() - 5 * 3600000).toISOString(); return fmt === "yyyy" ? z.slice(0, 4) : z.slice(0, 10); }
     },

@@ -1,8 +1,9 @@
 // Service worker: guarda la app para que abra sin señal.
 // Suba CACHE en cada publicación para que los celulares tomen la versión nueva.
-const CACHE = "valoracion-estructuras-v1";
+const CACHE = "valoracion-estructuras-v2";
 const ARCHIVOS = ["./", "index.html", "styles.css", "config.js", "ficha-estructuras.js", "concepto.js", "app.js",
-  "manifest.json", "img/logo.jpg", "img/icono-192.png", "img/icono-512.png"];
+  "manifest.json", "img/logo.jpg", "img/icono-192.png", "img/icono-512.png",
+  "lib/leaflet/leaflet.js", "lib/leaflet/leaflet.css", "lib/leaflet/images/layers.png", "lib/leaflet/images/layers-2x.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
@@ -10,7 +11,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-// Solo archivos de la propia app; las llamadas a Apps Script nunca pasan por la caché.
+// Solo archivos de la propia app; las llamadas a Apps Script y los mosaicos de mapas nunca pasan por la caché.
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== location.origin) return;

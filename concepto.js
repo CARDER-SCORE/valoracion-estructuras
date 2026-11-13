@@ -65,7 +65,9 @@ window.CONCEPTO = (() => {
     const fotos = fotosSt.length ? `<div class="ft">${fotosSt.map(f => `<div><img src="${esc(f.src)}" alt=""><br><b>Descripción:</b> ${esc(f.d)}${f.n || f.e ? `<br>Norte ${esc(f.n)} · Este ${esc(f.e)}` : ""}</div>`).join("")}</div>` : `<p><span class="vac">[sin fotos]</span></p>`;
     const anexos = F.ANEXOS.filter(a => st.anexos[a]);
     const mp = esc(st.mpio || "");
-    return `${enc}
+    const borrador = !st.sin_revision && st.revision_estado !== "Aprobada"
+      ? `<div class="borrador">BORRADOR · ${st.revision_estado ? esc(st.revision_estado.toUpperCase()) : "SIN ENVIAR A REVISIÓN"} · NO VÁLIDO HASTA SU APROBACIÓN</div>` : "";
+    return `${borrador}${enc}
  <table><tr><th style="width:32%">Número y fecha del concepto técnico</th><td>N°${esc(n)} · ${V(fechaLarga(st.ct_fecha))}</td></tr>
  <tr><th>PARA</th><td>${V(st.para)}</td></tr><tr><th>DE</th><td>${V(st.de)}</td></tr><tr><th>ASUNTO</th><td>${V(st.asunto)}</td></tr></table>
  <h4>Información general</h4>
@@ -78,7 +80,7 @@ window.CONCEPTO = (() => {
  <h4>Descripción del punto</h4>
  <table><tr><th colspan="3">Coordenadas (Magna Sirgas Origen Nacional)</th></tr><tr><th>Norte</th><th>Este</th><th>Altitud (msnm)</th></tr><tr><td>${V(st.norte)}</td><td>${V(st.este)}</td><td>${V(st.alt)}</td></tr></table>
  <table><tr><th style="width:38%">GPS o documento de las coordenadas</th><td>${V(st.coord_fuente)}</td></tr><tr><th>Nombre del predio y/o dirección</th><td>${V(st.edif)}${st.dir ? ", " + esc(st.dir) : ""}</td></tr>
- <tr><th>Vereda y/o barrio</th><td>${V(st.barrio)}</td></tr><tr><th>Municipio / Departamento</th><td>${mp} / Risaralda</td></tr><tr><th>Cuenca hidrográfica</th><td>${V(st.cuenca)}</td></tr><tr><th>POMCA</th><td>${V(st.pomca)}</td></tr><tr><th>Acceso al punto</th><td>${V(st.acceso)}</td></tr></table>
+ <tr><th>Vereda y/o barrio</th><td>${V(st.barrio)}</td></tr><tr><th>Municipio / Departamento</th><td>${mp} / Risaralda</td></tr><tr><th>Cuenca hidrográfica</th><td>${V(st.cuenca)}</td></tr><tr><th>POMCA</th><td>${V(st.pomca)}</td></tr><tr><th>Acceso al punto</th><td>${V(st.acceso)}</td></tr>${st.amenaza_ref ? `<tr><th>Amenaza según cartografía oficial (referencial)</th><td>${esc(st.amenaza_ref)}</td></tr>` : ""}</table>
  <h3>Descripción</h3><h4>Visita técnica</h4>
  <table><tr><th>Fecha de la visita técnica</th><td>${V(fechaLarga(st.v_fecha))}</td><th>Hora</th><td>${V(st.v_hora)}</td></tr><tr><th>Número de acta</th><td colspan="3">${V(st.v_acta)}</td></tr>
  <tr><th>Persona que atendió la visita</th><td>${V(st.v_atendio)}</td><th>Calidad</th><td>${V(st.v_calidad)}</td></tr></table>
@@ -105,7 +107,21 @@ window.CONCEPTO = (() => {
  <h4>Alcance del concepto</h4><p>${esc(F.ALCANCE(fechaLarga(st.v_fecha)))}</p>
  <p>Finalmente, se recuerda que, de acuerdo con el artículo 2 de la Ley 1523 de 2012, los habitantes del territorio son corresponsables de la gestión del riesgo y deben actuar con precaución y autoprotección, tanto en lo personal como en lo de sus bienes.</p>
  <p>${anexos.length ? `Adjunto al presente concepto se envía: ${esc(anexos.join(", ").toLowerCase())}. ` : ""}Cualquier inquietud o información adicional con gusto será suministrada a través del ${esc(C.CONTACTO)}.</p>
- <div class="firmas">${(st.firmas || []).map(f => `<div><b>${V(f.n)}</b><br>${esc(f.p)}${f.m ? ` · M.P. ${esc(f.m)}` : ""}<br>${esc(f.c)}<br>Subdirección para el Conocimiento y Reducción del Riesgo - SCORE<br>Temática evaluada: ${esc(f.t)}</div>`).join("")}</div>`;
+ ${firmas(st)}`;
+  }
+
+  // Suscribe el revisor que aprueba; quien proyectó (y quienes acompañaron) van debajo.
+  // Sin revisor (modo local) firman los profesionales de la lista, como en la v1.
+  const SCORE = "Subdirección para el Conocimiento y Reducción del Riesgo - SCORE";
+  function firmas(st) {
+    const lista = (st.firmas || []).filter(f => f && (f.n || "").trim());
+    const sus = st.suscribe && (st.suscribe.n || "").trim() ? st.suscribe : null;
+    if (!sus) return `<div class="firmas">${(st.firmas || []).map(f => `<div><b>${V(f.n)}</b><br>${esc(f.p)}${f.m ? ` · M.P. ${esc(f.m)}` : ""}<br>${esc(f.c)}<br>${SCORE}<br>Temática evaluada: ${esc(f.t)}</div>`).join("")}</div>`;
+    const mismo = f => f.n.trim().toUpperCase() === sus.n.trim().toUpperCase();
+    const otros = lista.filter(f => !mismo(f));
+    const linea = (f, rol) => `${rol}: ${esc(f.n)}${f.p ? ", " + esc(f.p) : ""}${f.m ? ", M.P. " + esc(f.m) : ""}${f.c ? " · " + esc(f.c) : ""}`;
+    return `<div class="firmas"><div><b>${esc(sus.n.toUpperCase())}</b><br>${esc(sus.p || "")}${sus.m ? ` · M.P. ${esc(sus.m)}` : ""}<br>${esc(sus.c || "")}<br>${SCORE}</div></div>
+ ${otros.length ? `<p class="proy">${otros.map((f, i) => linea(f, i === 0 && !mismo(lista[0]) ? "Proyectó" : "Acompañó la visita")).join("<br>")}</p>` : ""}`;
   }
 
   // Estilos de la hoja, compartidos por la vista previa (con prefijo #hoja) y el Word.
@@ -124,7 +140,9 @@ ol li{margin-bottom:5px;text-align:justify}
 .ft img{width:100%;max-height:230px;object-fit:cover}
 .firmas{display:grid;grid-template-columns:1fr 1fr;gap:28px 24px;margin-top:40px}
 .firmas div{font-size:10pt;border-top:1px solid #000;padding-top:4px}
-.vac{color:#b3261e;background:#fde7e5}`;
+.vac{color:#b3261e;background:#fde7e5}
+.borrador{border:2px solid #b3261e;color:#b3261e;text-align:center;font-weight:bold;padding:4px;margin-bottom:8px}
+.proy{font-size:9pt;margin-top:18px}`;
 
   function wordHtml(st, logoDataUri) {
     // Word no entiende grid: fotos y firmas van una debajo de otra con ancho fijo.
@@ -143,18 +161,10 @@ ol li{margin-bottom:5px;text-align:justify}
   }
 
   function nombreArchivo(st, ext) {
-    const base = st.ct_num ? `CT-${st.ct_num}-${anio(st)}` : (st.consecutivo || "borrador");
+    const base = (!st.sin_revision && st.revision_estado !== "Aprobada" && ext === "doc" ? "BORRADOR - " : "") + (st.ct_num ? `CT-${st.ct_num}-${anio(st)}` : (st.consecutivo || "sin consecutivo"));
     return `${base} - ${(st.mpio || "").toUpperCase()} - ${(st.edif || "edificacion").replace(/[\\/:*?"<>|]/g, "")}.${ext}`;
   }
 
-  // Fila para la hoja Registro_tareas del soporte del PTI (columnas A a F).
-  function filaPTI(st) {
-    const hoy = new Date().toISOString().slice(0, 10);
-    return [st.asig_fecha || hoy, `${st.asig_por || "Subdirector SCORE"} (${st.asig_medio || "Correo"})`,
-      `Concepto técnico estructural ${st.edif || ""}`.trim(), st.mpio || "",
-      `${st.doc_tipo || ""} ${st.doc_num || ""}${st.ct_num ? " / CT-" + st.ct_num : ""}`.trim(), "Concepto técnico estructural"].join("\t");
-  }
-
   return { esc, fechaLarga, frase, recTexto, recEjemplo, proponerAsunto, proponerConclusiones, hoja, CSS_HOJA, wordHtml,
-    textoPlano, nombreArchivo, filaPTI };
+    textoPlano, nombreArchivo };
 })();
